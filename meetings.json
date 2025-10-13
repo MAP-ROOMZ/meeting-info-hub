@@ -1,0 +1,26 @@
+[
+  {
+    "roomId": "Room 1",
+    "meetingId": "m-001",
+    "subject": "Project Kickoff",
+    "organizerId": "org-1",
+    "organizerName": "Alice",
+    "startDateUTC": "2025-09-20T10:00:00Z",
+    "endDateUTC": "2025-09-20T11:00:00Z",
+    "creationDateUTC": "2025-09-01T09:00:00Z",
+    "isPrivate": false,
+    "isCancelled": false
+  },
+  {
+    "roomId": "Room 2",
+    "meetingId": "m-002",
+    "subject": "Client Update",
+    "organizerId": "org-2",
+    "organizerName": "Bob",
+    "startDateUTC": "2025-09-21T15:00:00Z",
+    "endDateUTC": "2025-09-21T16:00:00Z",
+    "creationDateUTC": "2025-09-02T11:00:00Z",
+    "isPrivate": false,
+    "isCancelled": false
+  }
+]
