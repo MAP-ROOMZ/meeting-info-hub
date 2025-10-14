@@ -79,7 +79,7 @@ def get_meetings(room_id):
     if organizer_q:
         items = [m for m in items if m.get("organizerId") == organizer_q]
     items = [m for m in items if in_window(m)]
-    return jsonify({"count": len(items), "items": items}), 200
+    return jsonify(items), 200
 
 @app.route("/rooms/<room_id>/meetings", methods=["POST"])
 @requires_auth
@@ -117,3 +117,4 @@ def favicon():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT","5000")), debug=True)
+
