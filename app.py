@@ -19,8 +19,8 @@ if os.getenv("ENABLE_CORS") == "1":
         return resp
 
 # Basic Auth (set API_USERNAME and API_PASSWORD in env)
-API_USERNAME = os.getenv("Marcel_Test")
-API_PASSWORD = os.getenv("Roomz1234$")
+API_USERNAME = os.getenv("API_USERNAME")
+API_PASSWORD = os.getenv("API_PASSWORD")
 
 def requires_auth(fn):
     @wraps(fn)
@@ -143,3 +143,4 @@ def favicon():
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=int(os.getenv("PORT", "5000")))
+
