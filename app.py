@@ -60,48 +60,67 @@ def health():
 @requires_auth
 def get_rooms():
     return jsonify({"rooms": ROOMS}), 200
-
+    
 @app.route("/rooms/<room_id>/meetings", methods=["GET"])
 @requires_auth
 def get_meetings(room_id):
     start_q = request.args.get("start")
     end_q = request.args.get("end")
     organizer_q = request.args.get("organizerId")
-    start_dt = iso_to_dt(start_q) if start_q else None
-    end_dt = iso_to_dt(end_q) if end_q else None
 
-if USE_GOOGLE_CAL:
-    try:
-        import google_calendar
-        room_map = {
-            "Room 1": os.getenv("CALENDAR_ID_ROOM_1", ""),
-            "Room 2": os.getenv("CALENDAR_ID_ROOM_2", "")
-        }
-        cal_id = room_map.get(room_id) or os.getenv("CALENDAR_ID_DEFAULT", "")
-        if not cal_id:
-            return jsonify([]), 200
-        meetings = google_calendar.fetch_meetings(cal_id, start_q, end_q)
-        items = [meeting_to_dict(m) for m in meetings]
-    except Exception as e:
-        # keep app alive; show error to help diagnose
-        return jsonify({"error":"google_calendar_failed", "details": str(e)}), 500
-else:
-    items = [meeting_to_dict(m) for m in storage.get_meetings(room_id)]
+    def iso_to_dt(s):
+        try:
+            from dateutil import parser
+            return parser.isoparse(s) if s else None
+        except Exception:
+            return None
 
+    start_dt = iso_to_dt(start_q)
+    end_dt = iso_to_dt(end_q)
+
+    # --- Google mode ---
+    if USE_GOOGLE_CAL:
+        try:
+            import google_calendar  # import lazily so bad creds don't crash app
+            room_map = {
+                "Room 1": os.getenv("CALENDAR_ID_ROOM_1", ""),
+                "Room 2": os.getenv("CALENDAR_ID_ROOM_2", "")
+            }
+            cal_id = room_map.get(room_id) or os.getenv("CALENDAR_ID_DEFAULT", "")
+            if not cal_id:
+                return jsonify([]), 200  # unknown room -> empty list
+
+            meetings = google_calendar.fetch_meetings(cal_id, start_q, end_q)
+            items = [meeting_to_dict(m) for m in meetings]
+        except Exception as e:
+            # Keep app alive; return JSON error instead of crashing
+            return jsonify({"error": "google_calendar_failed", "details": str(e)}), 500
+
+    # --- Local/in-memory mode ---
+    else:
+        items = [meeting_to_dict(m) for m in storage.get_meetings(room_id)]
+
+    # Common filtering (organizer + time window)
     def in_window(m):
         if not start_dt and not end_dt:
             return True
-        s = iso_to_dt(m["startDateUTC"]); e = iso_to_dt(m["endDateUTC"])
-        if not s or not e: return False
-        if start_dt and e <= start_dt: return False
-        if end_dt and s >= end_dt: return False
+        s = iso_to_dt(m.get("startDateUTC"))
+        e = iso_to_dt(m.get("endDateUTC"))
+        if not s or not e:
+            return False
+        if start_dt and e <= start_dt:
+            return False
+        if end_dt and s >= end_dt:
+            return False
         return True
 
     if organizer_q:
         items = [m for m in items if m.get("organizerId") == organizer_q]
     items = [m for m in items if in_window(m)]
-    return jsonify(items), 200
 
+    # IMPORTANT: this return must be inside the function
+    return jsonify(items), 200
+    
 @app.route("/rooms/<room_id>/meetings", methods=["POST"])
 @requires_auth
 def create_meeting(room_id):
@@ -138,10 +157,3 @@ def favicon():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT","5000")), debug=True)
-
-
-
-
-
-
-
