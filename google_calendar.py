@@ -10,7 +10,8 @@ from dateutil import parser
 SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
 
 def to_iso_z(v: dict) -> str:
-    if not v: return ""
+    if not v:
+        return ""
     # timed event
     if v.get("dateTime"):
         dt = parser.isoparse(v["dateTime"]).astimezone(timezone.utc).replace(microsecond=0)
@@ -19,8 +20,10 @@ def to_iso_z(v: dict) -> str:
     if v.get("date"):
         return f"{v['date']}T00:00:00Z"
     return ""
+
 def to_created_z(s: str | None) -> str:
-    if not s: return ""
+    if not s:
+        return ""
     dt = parser.isoparse(s).astimezone(timezone.utc).replace(microsecond=0)
     return dt.isoformat().replace("+00:00", "Z")
 
@@ -35,13 +38,16 @@ def _build_client():
 def fetch_meetings(calendar_id: str, time_min_iso: str | None, time_max_iso: str | None) -> List[Meeting]:
     svc = _build_client()
 
-    # Default window: now .. now+lookahead
-    now = datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc)
+    # -----------------------------------------------------------
+    # ✅ Default time window: now .. now + DEFAULT_LOOKAHEAD_HOURS
+    # -----------------------------------------------------------
+    hours = int(os.getenv("DEFAULT_LOOKAHEAD_HOURS", "24"))
+    now = datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).replace(microsecond=0)
     if not time_min_iso:
         time_min_iso = now.isoformat().replace("+00:00", "Z")
     if not time_max_iso:
-        hours = int(os.getenv("DEFAULT_LOOKAHEAD_HOURS", "24"))
         time_max_iso = (now + datetime.timedelta(hours=hours)).isoformat().replace("+00:00", "Z")
+    # -----------------------------------------------------------
 
     events = svc.events().list(
         calendarId=calendar_id,
@@ -53,25 +59,17 @@ def fetch_meetings(calendar_id: str, time_min_iso: str | None, time_max_iso: str
 
     meetings: List[Meeting] = []
     for e in events:
-        # Resolve start/end in UTC ISO
-        def _to_iso(v):
-            if not v: return None
-            # v can be 'dateTime' or all-day 'date'
-            dt = v.get("dateTime") or (v.get("date") + "T00:00:00Z")
-            # ensure Z suffix
-            return dt if dt.endswith("Z") else dt
-
         subject = e.get("summary") or ""
         organizer_email = (e.get("organizer") or {}).get("email", "")
         organizer_name = (e.get("organizer") or {}).get("displayName") or organizer_email or ""
         meetings.append(Meeting(
             meetingId=e.get("id"),
             subject=subject,
-            organizerId=organizer_email,      # use organizer email as ID
+            organizerId=organizer_email,
             organizerName=organizer_name,
-            startDateUTC = to_iso_z(e.get("start")),
-            endDateUTC   = to_iso_z(e.get("end")),
-            creationDateUTC = to_created_z(e.get("created")),
+            startDateUTC=to_iso_z(e.get("start")),
+            endDateUTC=to_iso_z(e.get("end")),
+            creationDateUTC=to_created_z(e.get("created")),
             isPrivate=bool(e.get("privateCopy", False) or e.get("visibility") == "private"),
             isCancelled=(e.get("status") == "cancelled"),
         ))
