@@ -4,8 +4,25 @@ from typing import List
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 from models import Meeting
+from datetime import timezone
+from dateutil import parser
 
 SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
+
+def to_iso_z(v: dict) -> str:
+    if not v: return ""
+    # timed event
+    if v.get("dateTime"):
+        dt = parser.isoparse(v["dateTime"]).astimezone(timezone.utc).replace(microsecond=0)
+        return dt.isoformat().replace("+00:00", "Z")
+    # all-day
+    if v.get("date"):
+        return f"{v['date']}T00:00:00Z"
+    return ""
+def to_created_z(s: str | None) -> str:
+    if not s: return ""
+    dt = parser.isoparse(s).astimezone(timezone.utc).replace(microsecond=0)
+    return dt.isoformat().replace("+00:00", "Z")
 
 def _build_client():
     creds_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
@@ -52,9 +69,9 @@ def fetch_meetings(calendar_id: str, time_min_iso: str | None, time_max_iso: str
             subject=subject,
             organizerId=organizer_email,      # use organizer email as ID
             organizerName=organizer_name,
-            startDateUTC=_to_iso(e.get("start")),
-            endDateUTC=_to_iso(e.get("end")),
-            creationDateUTC=(e.get("created") or "").replace(".000Z",".000Z"),
+            startDateUTC = to_iso_z(e.get("start")),
+            endDateUTC   = to_iso_z(e.get("end")),
+            creationDateUTC = to_created_z(e.get("created")),
             isPrivate=bool(e.get("privateCopy", False) or e.get("visibility") == "private"),
             isCancelled=(e.get("status") == "cancelled"),
         ))
