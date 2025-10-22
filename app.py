@@ -70,18 +70,21 @@ def get_meetings(room_id):
     start_dt = iso_to_dt(start_q) if start_q else None
     end_dt = iso_to_dt(end_q) if end_q else None
 
-# items = [meeting_to_dict(m) for m in storage.get_meetings(room_id)]
 if USE_GOOGLE_CAL:
-    # Map room -> calendar ID from env
-    room_map = {
-        "Room 1": os.getenv("CALENDAR_ID_ROOM_1", ""),
-        "Room 2": os.getenv("CALENDAR_ID_ROOM_2", "")
-    }
-    cal_id = room_map.get(room_id) or os.getenv("CALENDAR_ID_DEFAULT", "")
-    if not cal_id:
-        return jsonify([]), 200  # unknown room -> empty list
-    meetings = google_calendar.fetch_meetings(cal_id, start_q, end_q)
-    items = [meeting_to_dict(m) for m in meetings]
+    try:
+        import google_calendar
+        room_map = {
+            "Room 1": os.getenv("CALENDAR_ID_ROOM_1", ""),
+            "Room 2": os.getenv("CALENDAR_ID_ROOM_2", "")
+        }
+        cal_id = room_map.get(room_id) or os.getenv("CALENDAR_ID_DEFAULT", "")
+        if not cal_id:
+            return jsonify([]), 200
+        meetings = google_calendar.fetch_meetings(cal_id, start_q, end_q)
+        items = [meeting_to_dict(m) for m in meetings]
+    except Exception as e:
+        # keep app alive; show error to help diagnose
+        return jsonify({"error":"google_calendar_failed", "details": str(e)}), 500
 else:
     items = [meeting_to_dict(m) for m in storage.get_meetings(room_id)]
 
@@ -135,6 +138,7 @@ def favicon():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT","5000")), debug=True)
+
 
 
 
