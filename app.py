@@ -11,8 +11,7 @@ import storage
 app = Flask(__name__)
 
 USE_GOOGLE_CAL = os.getenv("USE_GOOGLE_CAL") == "1"
-if USE_GOOGLE_CAL:
-    import google_calendar
+# ⚠️ Do NOT import google_calendar here anymore — it will be imported dynamically inside the route
 
 # CORS (optional)
 if os.getenv("ENABLE_CORS") == "1":
@@ -136,6 +135,7 @@ def favicon():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT","5000")), debug=True)
+
 
 
 
