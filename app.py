@@ -64,8 +64,10 @@ def get_rooms():
 @app.route("/rooms/<room_id>/meetings", methods=["GET"])
 @requires_auth
 def get_meetings(room_id):
-    start_q = request.args.get("start")
-    end_q = request.args.get("end")
+    # accept both styles
+    start_q = request.args.get("start") or request.args.get("from")
+    end_q   = request.args.get("end")   or request.args.get("to")
+
     organizer_q = request.args.get("organizerId")
 
     def iso_to_dt(s):
@@ -157,3 +159,4 @@ def favicon():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT","5000")), debug=True)
+
