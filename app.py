@@ -38,8 +38,8 @@ def requires_auth(fn):
     return wrapper
 
 ROOMS = [
-    {"roomId": "Room 1", "name": "Meeting Room Bern"},
-    {"roomId": "Room 2", "name": "Meeting Room Zurich"}
+    {"roomId": "Room1", "name": "MeetingRoomBern"},
+    {"roomId": "Room2", "name": "MeetingRoomZurich"}
 ]
 
 def iso_to_dt(s):
@@ -85,12 +85,12 @@ def get_meetings(room_id):
         try:
             import google_calendar  # import lazily so bad creds don't crash app
             room_map = {
-                "Room 1": os.getenv("CALENDAR_ID_ROOM_1", ""),
-                "Room 2": os.getenv("CALENDAR_ID_ROOM_2", "")
+                "Room1": os.getenv("CALENDAR_ID_ROOM_1", ""),
+                "Room2": os.getenv("CALENDAR_ID_ROOM_2", "")
             }
             cal_id = room_map.get(room_id) or os.getenv("CALENDAR_ID_DEFAULT", "")
             if not cal_id:
-                return jsonify([]), 200  # unknown room -> empty list
+                return jsonify([]), 404  # unknown room -> empty list
 
             meetings = google_calendar.fetch_meetings(cal_id, start_q, end_q)
             items = [meeting_to_dict(m) for m in meetings]
@@ -159,4 +159,5 @@ def favicon():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT","5000")), debug=True)
+
 
